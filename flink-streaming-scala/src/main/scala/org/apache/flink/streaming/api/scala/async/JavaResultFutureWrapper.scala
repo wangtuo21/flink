@@ -20,6 +20,7 @@ package org.apache.flink.streaming.api.scala.async
 
 import org.apache.flink.annotation.Internal
 import org.apache.flink.streaming.api.functions.async
+import org.apache.flink.streaming.api.functions.async.ResultFuture
 
 import scala.collection.JavaConverters._
 

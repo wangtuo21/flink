@@ -56,7 +56,7 @@ public class TestingHighAvailabilityServices implements HighAvailabilityServices
 
 	private volatile SubmittedJobGraphStore submittedJobGraphStore;
 
-	private volatile RunningJobsRegistry runningJobsRegistry = new StandaloneRunningJobsRegistry();
+	private final RunningJobsRegistry runningJobsRegistry = new StandaloneRunningJobsRegistry();
 
 	// ------------------------------------------------------------------------
 	//  Setters for mock / testing implementations
@@ -102,9 +102,6 @@ public class TestingHighAvailabilityServices implements HighAvailabilityServices
 		this.submittedJobGraphStore = submittedJobGraphStore;
 	}
 
-	public void setRunningJobsRegistry(RunningJobsRegistry runningJobsRegistry) {
-		this.runningJobsRegistry = runningJobsRegistry;
-	}
 	// ------------------------------------------------------------------------
 	//  HA Services Methods
 	// ------------------------------------------------------------------------

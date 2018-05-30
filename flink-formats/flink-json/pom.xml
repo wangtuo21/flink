@@ -91,11 +91,6 @@ under the License.
 		<profile>
 			<!-- Create SQL Client uber jars for releases -->
 			<id>release</id>
-			<activation>
-				<property>
-					<name>release</name>
-				</property>
-			</activation>
 			<build>
 				<plugins>
 					<plugin>

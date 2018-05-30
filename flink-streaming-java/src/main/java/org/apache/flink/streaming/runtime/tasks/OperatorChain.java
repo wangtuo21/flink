@@ -18,7 +18,6 @@
 package org.apache.flink.streaming.runtime.tasks;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.metrics.Counter;
@@ -55,16 +54,12 @@ import org.apache.flink.util.XORShiftRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * The {@code OperatorChain} contains all operators that are executed as one chain within a single
@@ -163,19 +158,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 				}
 			}
 		}
-	}
 
-	@VisibleForTesting
-	OperatorChain(
-			StreamOperator<?>[] allOperators,
-			RecordWriterOutput<?>[] streamOutputs,
-			WatermarkGaugeExposingOutput<StreamRecord<OUT>> chainEntryPoint,
-			OP headOperator) {
-
-		this.allOperators = checkNotNull(allOperators);
-		this.streamOutputs = checkNotNull(streamOutputs);
-		this.chainEntryPoint = checkNotNull(chainEntryPoint);
-		this.headOperator = checkNotNull(headOperator);
 	}
 
 	@Override
@@ -196,28 +179,26 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 	}
 
 	public void broadcastCheckpointBarrier(long id, long timestamp, CheckpointOptions checkpointOptions) throws IOException {
-		CheckpointBarrier barrier = new CheckpointBarrier(id, timestamp, checkpointOptions);
-		for (RecordWriterOutput<?> streamOutput : streamOutputs) {
-			streamOutput.broadcastEvent(barrier);
+		try {
+			CheckpointBarrier barrier = new CheckpointBarrier(id, timestamp, checkpointOptions);
+			for (RecordWriterOutput<?> streamOutput : streamOutputs) {
+				streamOutput.broadcastEvent(barrier);
+			}
+		}
+		catch (InterruptedException e) {
+			throw new IOException("Interrupted while broadcasting checkpoint barrier");
 		}
 	}
 
 	public void broadcastCheckpointCancelMarker(long id) throws IOException {
-		CancelCheckpointMarker barrier = new CancelCheckpointMarker(id);
-		for (RecordWriterOutput<?> streamOutput : streamOutputs) {
-			streamOutput.broadcastEvent(barrier);
-		}
-	}
-
-	public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
-		// go forward through the operator chain and tell each operator
-		// to prepare the checkpoint
-		final StreamOperator<?>[] operators = this.allOperators;
-		for (int i = operators.length - 1; i >= 0; --i) {
-			final StreamOperator<?> op = operators[i];
-			if (op != null) {
-				op.prepareSnapshotPreBarrier(checkpointId);
+		try {
+			CancelCheckpointMarker barrier = new CancelCheckpointMarker(id);
+			for (RecordWriterOutput<?> streamOutput : streamOutputs) {
+				streamOutput.broadcastEvent(barrier);
 			}
+		}
+		catch (InterruptedException e) {
+			throw new IOException("Interrupted while broadcasting checkpoint cancellation");
 		}
 	}
 
@@ -421,7 +402,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 		Gauge<Long> getWatermarkGauge();
 	}
 
-	static class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
+	private static class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
 
 		protected final OneInputStreamOperator<T, ?> operator;
 		protected final Counter numRecordsIn;
@@ -429,13 +410,12 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 
 		protected final StreamStatusProvider streamStatusProvider;
 
-		@Nullable
 		protected final OutputTag<T> outputTag;
 
 		public ChainingOutput(
 				OneInputStreamOperator<T, ?> operator,
 				StreamStatusProvider streamStatusProvider,
-				@Nullable OutputTag<T> outputTag) {
+				OutputTag<T> outputTag) {
 			this.operator = operator;
 
 			{
@@ -532,7 +512,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 		}
 	}
 
-	static final class CopyingChainingOutput<T> extends ChainingOutput<T> {
+	private static final class CopyingChainingOutput<T> extends ChainingOutput<T> {
 
 		private final TypeSerializer<T> serializer;
 
@@ -600,7 +580,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 		}
 	}
 
-	static class BroadcastingOutputCollector<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
+	private static class BroadcastingOutputCollector<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
 
 		protected final Output<StreamRecord<T>>[] outputs;
 
@@ -670,7 +650,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 	 * Special version of {@link BroadcastingOutputCollector} that performs a shallow copy of the
 	 * {@link StreamRecord} to ensure that multi-chaining works correctly.
 	 */
-	static final class CopyingBroadcastingOutputCollector<T> extends BroadcastingOutputCollector<T> {
+	private static final class CopyingBroadcastingOutputCollector<T> extends BroadcastingOutputCollector<T> {
 
 		public CopyingBroadcastingOutputCollector(
 				Output<StreamRecord<T>>[] outputs,

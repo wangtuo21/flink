@@ -72,7 +72,6 @@ import org.apache.flink.runtime.rest.handler.legacy.metrics.JobVertexMetricsHand
 import org.apache.flink.runtime.rest.handler.legacy.metrics.MetricFetcher;
 import org.apache.flink.runtime.rest.handler.legacy.metrics.SubtaskMetricsHandler;
 import org.apache.flink.runtime.rest.handler.legacy.metrics.TaskManagerMetricsHandler;
-import org.apache.flink.runtime.rest.handler.router.Router;
 import org.apache.flink.runtime.webmonitor.handlers.legacy.JarAccessDeniedHandler;
 import org.apache.flink.runtime.webmonitor.handlers.legacy.JarDeleteHandler;
 import org.apache.flink.runtime.webmonitor.handlers.legacy.JarListHandler;
@@ -88,6 +87,7 @@ import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.ShutdownHookUtil;
 
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelInboundHandler;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.router.Router;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -320,14 +320,14 @@ public class WebRuntimeMonitor implements WebMonitor {
 
 		router
 			// log and stdout
-			.addGet("/jobmanager/log", logFiles.logFile == null ? new ConstantTextHandler("(log file unavailable)") :
+			.GET("/jobmanager/log", logFiles.logFile == null ? new ConstantTextHandler("(log file unavailable)") :
 				new StaticFileServerHandler<>(
 					retriever,
 					localRestAddress,
 					timeout,
 					logFiles.logFile))
 
-			.addGet("/jobmanager/stdout", logFiles.stdOutFile == null ? new ConstantTextHandler("(stdout file unavailable)") :
+			.GET("/jobmanager/stdout", logFiles.stdOutFile == null ? new ConstantTextHandler("(stdout file unavailable)") :
 				new StaticFileServerHandler<>(retriever, localRestAddress, timeout, logFiles.stdOutFile));
 
 		// Cancel a job via GET (for proper integration with YARN this has to be performed via GET)
@@ -376,7 +376,7 @@ public class WebRuntimeMonitor implements WebMonitor {
 		}
 
 		// this handler serves all the static contents
-		router.addGet("/:*", new StaticFileServerHandler<>(
+		router.GET("/:*", new StaticFileServerHandler<>(
 			retriever,
 			localRestAddress,
 			timeout,
@@ -515,7 +515,7 @@ public class WebRuntimeMonitor implements WebMonitor {
 
 	private static <T extends ChannelInboundHandler & WebHandler> void get(Router router, T handler) {
 		for (String path : handler.getPaths()) {
-			router.addGet(path, handler);
+			router.GET(path, handler);
 		}
 	}
 
@@ -525,7 +525,7 @@ public class WebRuntimeMonitor implements WebMonitor {
 
 	private static <T extends ChannelInboundHandler & WebHandler> void delete(Router router, T handler) {
 		for (String path : handler.getPaths()) {
-			router.addDelete(path, handler);
+			router.DELETE(path, handler);
 		}
 	}
 
@@ -535,7 +535,7 @@ public class WebRuntimeMonitor implements WebMonitor {
 
 	private static <T extends ChannelInboundHandler & WebHandler> void post(Router router, T handler) {
 		for (String path : handler.getPaths()) {
-			router.addPost(path, handler);
+			router.POST(path, handler);
 		}
 	}
 

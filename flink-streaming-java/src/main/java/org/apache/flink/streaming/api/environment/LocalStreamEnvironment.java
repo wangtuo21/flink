@@ -103,11 +103,9 @@ public class LocalStreamEnvironment extends StreamExecutionEnvironment {
 			configuration.setInteger(RestOptions.PORT, 0);
 		}
 
-		int numSlotsPerTaskManager = configuration.getInteger(TaskManagerOptions.NUM_TASK_SLOTS, jobGraph.getMaximumParallelism());
-
 		MiniClusterConfiguration cfg = new MiniClusterConfiguration.Builder()
 			.setConfiguration(configuration)
-			.setNumSlotsPerTaskManager(numSlotsPerTaskManager)
+			.setNumSlotsPerTaskManager(jobGraph.getMaximumParallelism())
 			.build();
 
 		if (LOG.isInfoEnabled()) {

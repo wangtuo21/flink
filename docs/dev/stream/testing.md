@@ -140,7 +140,7 @@ You could write the following integration test:
 <div class="codetabs" markdown="1">
 <div data-lang="java" markdown="1">
 {% highlight java %}
-public class ExampleIntegrationTest extends AbstractTestBase {
+public class ExampleIntegrationTest extends StreamingMultipleProgramsTestBase {
 
     @Test
     public void testMultiply() throws Exception {
@@ -181,7 +181,7 @@ public class ExampleIntegrationTest extends AbstractTestBase {
 
 <div data-lang="scala" markdown="1">
 {% highlight scala %}
-class ExampleIntegrationTest extends AbstractTestBase {
+class ExampleIntegrationTest extends StreamingMultipleProgramsTestBase {
 
     @Test
     def testMultiply(): Unit = {

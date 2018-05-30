@@ -134,12 +134,8 @@ public class RocksDBMapState<K, N, UK, UV>
 			return;
 		}
 
-		try (RocksDBWriteBatchWrapper writeBatchWrapper = new RocksDBWriteBatchWrapper(backend.db, writeOptions)) {
-			for (Map.Entry<UK, UV> entry : map.entrySet()) {
-				byte[] rawKeyBytes = serializeUserKeyWithCurrentKeyAndNamespace(entry.getKey());
-				byte[] rawValueBytes = serializeUserValue(entry.getValue());
-				writeBatchWrapper.put(columnFamily, rawKeyBytes, rawValueBytes);
-			}
+		for (Map.Entry<UK, UV> entry : map.entrySet()) {
+			put(entry.getKey(), entry.getValue());
 		}
 	}
 

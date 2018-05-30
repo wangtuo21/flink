@@ -25,18 +25,19 @@ import org.apache.calcite.config.{CalciteConnectionConfigImpl, CalciteConnection
 import org.apache.calcite.jdbc.CalciteSchema
 import org.apache.calcite.prepare.CalciteCatalogReader
 import org.apache.calcite.schema.SchemaPlus
+import org.apache.calcite.sql.parser.SqlParser
 import org.apache.calcite.sql.validate.SqlMonikerType
-import org.apache.flink.table.calcite.{FlinkTypeFactory, FlinkTypeSystem}
+import org.apache.flink.table.calcite.{CalciteConfig, FlinkTypeFactory, FlinkTypeSystem}
 import org.apache.flink.table.plan.schema.TableSourceTable
 import org.apache.flink.table.runtime.utils.CommonTestData
 import org.apache.flink.table.sources.CsvTableSource
-import org.apache.flink.table.utils.TableTestBase
+import org.apache.flink.table.utils.MockTableEnvironment
 import org.junit.Assert._
 import org.junit.{Before, Test}
 
 import scala.collection.JavaConverters._
 
-class ExternalCatalogSchemaTest extends TableTestBase {
+class ExternalCatalogSchemaTest {
 
   private val schemaName: String = "test"
   private var externalCatalogSchema: SchemaPlus = _
@@ -49,7 +50,7 @@ class ExternalCatalogSchemaTest extends TableTestBase {
     val rootSchemaPlus: SchemaPlus = CalciteSchema.createRootSchema(true, false).plus()
     val catalog = CommonTestData.getInMemoryTestCatalog
     ExternalCatalogSchema.registerCatalog(
-      streamTestUtil().tableEnv, rootSchemaPlus, schemaName, catalog)
+      new MockTableEnvironment, rootSchemaPlus, schemaName, catalog)
     externalCatalogSchema = rootSchemaPlus.getSubSchema("schemaName")
     val typeFactory = new FlinkTypeFactory(new FlinkTypeSystem())
     val prop = new Properties()

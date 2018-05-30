@@ -28,8 +28,6 @@ import org.apache.flink.runtime.instance.Instance;
 import org.apache.flink.runtime.instance.InstanceID;
 import org.apache.flink.runtime.jobmanager.slots.TaskManagerGateway;
 import org.apache.flink.runtime.jobmaster.JobManagerGateway;
-import org.apache.flink.runtime.rest.handler.router.RouteResult;
-import org.apache.flink.runtime.rest.handler.router.RoutedRequest;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
 
@@ -38,6 +36,7 @@ import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.DefaultFullHttpRequest;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpMethod;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpVersion;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.router.Routed;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -135,16 +134,11 @@ public class TaskManagerLogHandlerTest {
 
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put(TaskManagersHandler.TASK_MANAGER_ID_KEY, tmID.toString());
-		RoutedRequest routedRequest = new RoutedRequest(
-			new RouteResult(
-				"shouldn't be used",
-				"shouldn't be used either",
-				pathParams,
-				new HashMap<>(),
-				new Object()),
-			new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/taskmanagers/" + tmID + "/log"));
+		Routed routed = mock(Routed.class);
+		when(routed.pathParams()).thenReturn(pathParams);
+		when(routed.request()).thenReturn(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/taskmanagers/" + tmID + "/log"));
 
-		handler.respondAsLeader(ctx, routedRequest, jobManagerGateway);
+		handler.respondAsLeader(ctx, routed, jobManagerGateway);
 
 		Assert.assertEquals("Fetching TaskManager log failed.", exception.get());
 	}

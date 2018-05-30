@@ -97,6 +97,7 @@ function create_ha_config() {
     jobmanager.heap.mb: 1024
     taskmanager.heap.mb: 1024
     taskmanager.numberOfTaskSlots: 4
+    parallelism.default: 1
 
     #==============================================================================
     # High Availability
@@ -236,23 +237,6 @@ function wait_job_running {
       break
     fi
     sleep 1
-  done
-}
-
-function wait_job_terminal_state {
-  local job=$1
-  local terminal_state=$2
-
-  echo "Waiting for job ($job) to reach terminal state $terminal_state ..."
-
-  while : ; do
-    N=$(grep -o "Job $job reached globally terminal state $terminal_state" $FLINK_DIR/log/*standalonesession*.log | tail -1)
-
-    if [[ -z $N ]]; then
-      sleep 1
-    else
-      break
-    fi
   done
 }
 

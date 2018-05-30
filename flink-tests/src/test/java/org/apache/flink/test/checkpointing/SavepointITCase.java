@@ -314,12 +314,24 @@ public class SavepointITCase extends TestLogger {
 			env.setParallelism(parallelism);
 			env.addSource(new InfiniteTestSource())
 					.shuffle()
-					.map(value -> 4 * value)
+					.map(new MapFunction<Integer, Integer>() {
+
+						@Override
+						public Integer map(Integer value) throws Exception {
+							return 4 * value;
+						}
+					})
 					.shuffle()
 					.map(statefulCounter).uid("statefulCounter")
 					.shuffle()
-					.map(value -> 2 * value)
-					.addSink(new DiscardingSink<>());
+					.map(new MapFunction<Integer, Integer>() {
+
+						@Override
+						public Integer map(Integer value) throws Exception {
+							return 2 * value;
+						}
+					})
+					.addSink(new DiscardingSink<Integer>());
 
 			JobGraph originalJobGraph = env.getStreamGraph().getJobGraph();
 
@@ -363,8 +375,14 @@ public class SavepointITCase extends TestLogger {
 					.shuffle()
 					.map(new StatefulCounter()).uid("statefulCounter")
 					.shuffle()
-					.map(value -> value)
-					.addSink(new DiscardingSink<>());
+					.map(new MapFunction<Integer, Integer>() {
+
+						@Override
+						public Integer map(Integer value) throws Exception {
+							return value;
+						}
+					})
+					.addSink(new DiscardingSink<Integer>());
 
 			JobGraph modifiedJobGraph = env.getStreamGraph().getJobGraph();
 
@@ -410,7 +428,7 @@ public class SavepointITCase extends TestLogger {
 			.shuffle()
 			.map(new StatefulCounter());
 
-		stream.addSink(new DiscardingSink<>());
+		stream.addSink(new DiscardingSink<Integer>());
 
 		return env.getStreamGraph().getJobGraph();
 	}

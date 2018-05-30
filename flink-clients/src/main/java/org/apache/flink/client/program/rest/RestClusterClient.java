@@ -100,7 +100,6 @@ import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.function.CheckedSupplier;
 
 import org.apache.flink.shaded.netty4.io.netty.channel.ConnectTimeoutException;
-import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
 
 import akka.actor.AddressFromURIString;
 
@@ -275,9 +274,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		final JobMessageParameters  params = new JobMessageParameters();
 		params.jobPathParameter.resolve(jobId);
 
-		CompletableFuture<JobDetailsInfo> responseFuture = sendRequest(
-			detailsHeaders,
-			params);
+		CompletableFuture<JobDetailsInfo> responseFuture = sendRequest(detailsHeaders, params);
 
 		return responseFuture.thenApply(JobDetailsInfo::getJobStatus);
 	}
@@ -296,9 +293,11 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 			() -> {
 				final JobMessageParameters messageParameters = new JobMessageParameters();
 				messageParameters.jobPathParameter.resolve(jobId);
-				return sendRequest(
+				return sendRetryableRequest(
 					JobExecutionResultHeaders.getInstance(),
-					messageParameters);
+					messageParameters,
+					EmptyRequestBody.getInstance(),
+					isConnectionProblemException().or(isHttpStatusUnsuccessfulException()));
 			});
 	}
 
@@ -314,7 +313,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		jobGraph.setAllowQueuedScheduling(true);
 
 		log.info("Requesting blob server port.");
-		CompletableFuture<BlobServerPortResponseBody> portFuture = sendRequest(BlobServerPortHeaders.getInstance());
+		CompletableFuture<BlobServerPortResponseBody> portFuture = sendRequest(
+			BlobServerPortHeaders.getInstance());
 
 		CompletableFuture<JobGraph> jobUploadFuture = portFuture.thenCombine(
 			getDispatcherAddress(),
@@ -366,7 +366,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		params.terminationModeQueryParameter.resolve(Collections.singletonList(TerminationModeQueryParameter.TerminationMode.STOP));
 		CompletableFuture<EmptyResponseBody> responseFuture = sendRequest(
 			JobTerminationHeaders.getInstance(),
-			params);
+			params
+		);
 		responseFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
 	}
 
@@ -377,7 +378,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		params.terminationModeQueryParameter.resolve(Collections.singletonList(TerminationModeQueryParameter.TerminationMode.CANCEL));
 		CompletableFuture<EmptyResponseBody> responseFuture = sendRequest(
 			JobTerminationHeaders.getInstance(),
-			params);
+			params
+		);
 		responseFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
 	}
 
@@ -389,7 +391,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	@Override
 	public CompletableFuture<String> triggerSavepoint(
 			final JobID jobId,
-			final @Nullable String savepointDirectory) {
+			final @Nullable String savepointDirectory) throws FlinkException {
 		return triggerSavepoint(jobId, savepointDirectory, false);
 	}
 
@@ -427,7 +429,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 
 		CompletableFuture<JobAccumulatorsInfo> responseFuture = sendRequest(
 			accumulatorsHeaders,
-			accMsgParams);
+			accMsgParams
+		);
 
 		Map<String, OptionalFailure<Object>> result = Collections.emptyMap();
 
@@ -460,14 +463,16 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 				savepointStatusHeaders.getUnresolvedMessageParameters();
 			savepointStatusMessageParameters.jobIdPathParameter.resolve(jobId);
 			savepointStatusMessageParameters.triggerIdPathParameter.resolve(triggerID);
-			return sendRequest(
+			return sendRetryableRequest(
 				savepointStatusHeaders,
-				savepointStatusMessageParameters);
+				savepointStatusMessageParameters,
+				EmptyRequestBody.getInstance(),
+				isConnectionProblemException());
 		});
 	}
 
 	@Override
-	public CompletableFuture<Collection<JobStatusMessage>> listJobs() {
+	public CompletableFuture<Collection<JobStatusMessage>> listJobs() throws Exception {
 		return sendRequest(JobsOverviewHeaders.getInstance())
 			.thenApply(
 				(multipleJobsDetails) -> multipleJobsDetails
@@ -503,7 +508,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 
 		final CompletableFuture<TriggerResponse> rescalingTriggerResponseFuture = sendRequest(
 			rescalingTriggerHeaders,
-			rescalingTriggerMessageParameters);
+			rescalingTriggerMessageParameters,
+			EmptyRequestBody.getInstance());
 
 		final CompletableFuture<AsynchronousOperationInfo> rescalingOperationFuture = rescalingTriggerResponseFuture.thenCompose(
 			(TriggerResponse triggerResponse) -> {
@@ -515,9 +521,11 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 				rescalingStatusMessageParameters.triggerIdPathParameter.resolve(triggerId);
 
 				return pollResourceAsync(
-					() -> sendRequest(
+					() -> sendRetryableRequest(
 						rescalingStatusHeaders,
-						rescalingStatusMessageParameters));
+						rescalingStatusMessageParameters,
+						EmptyRequestBody.getInstance(),
+						isConnectionProblemException()));
 			});
 
 		return rescalingOperationFuture.thenApply(
@@ -536,6 +544,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 
 		final CompletableFuture<TriggerResponse> savepointDisposalTriggerFuture = sendRequest(
 			SavepointDisposalTriggerHeaders.getInstance(),
+			EmptyMessageParameters.getInstance(),
 			savepointDisposalRequest);
 
 		final CompletableFuture<AsynchronousOperationInfo> savepointDisposalFuture = savepointDisposalTriggerFuture.thenCompose(
@@ -546,9 +555,11 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 				savepointDisposalStatusMessageParameters.triggerIdPathParameter.resolve(triggerId);
 
 				return pollResourceAsync(
-					() -> sendRequest(
+					() -> sendRetryableRequest(
 						savepointDisposalStatusHeaders,
-						savepointDisposalStatusMessageParameters));
+						savepointDisposalStatusMessageParameters,
+						EmptyRequestBody.getInstance(),
+						isConnectionProblemException()));
 			});
 
 		return savepointDisposalFuture.thenApply(
@@ -564,7 +575,11 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	@Override
 	public void shutDownCluster() {
 		try {
-			sendRequest(ShutdownHeaders.getInstance()).get();
+			sendRetryableRequest(
+				ShutdownHeaders.getInstance(),
+				EmptyMessageParameters.getInstance(),
+				EmptyRequestBody.getInstance(),
+				isConnectionProblemException()).get();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		} catch (ExecutionException e) {
@@ -666,20 +681,24 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		return sendRequest(messageHeaders, EmptyMessageParameters.getInstance(), request);
 	}
 
-	@VisibleForTesting
-	<M extends MessageHeaders<EmptyRequestBody, P, EmptyMessageParameters>, P extends ResponseBody> CompletableFuture<P>
+	private <M extends MessageHeaders<EmptyRequestBody, P, EmptyMessageParameters>, P extends ResponseBody> CompletableFuture<P>
 			sendRequest(M messageHeaders) {
 		return sendRequest(messageHeaders, EmptyMessageParameters.getInstance(), EmptyRequestBody.getInstance());
 	}
 
 	private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P>
 			sendRequest(M messageHeaders, U messageParameters, R request) {
-		return sendRetriableRequest(
-			messageHeaders, messageParameters, request, isConnectionProblemOrServiceUnavailable());
+		return getWebMonitorBaseUrl().thenCompose(webMonitorBaseUrl -> {
+			try {
+				return restClient.sendRequest(webMonitorBaseUrl.getHost(), webMonitorBaseUrl.getPort(), messageHeaders, messageParameters, request);
+			} catch (IOException e) {
+				throw new CompletionException(e);
+			}
+		});
 	}
 
 	private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P>
-			sendRetriableRequest(M messageHeaders, U messageParameters, R request, Predicate<Throwable> retryPredicate) {
+			sendRetryableRequest(M messageHeaders, U messageParameters, R request, Predicate<Throwable> retryPredicate) {
 		return retry(() -> getWebMonitorBaseUrl().thenCompose(webMonitorBaseUrl -> {
 			try {
 				return restClient.sendRequest(webMonitorBaseUrl.getHost(), webMonitorBaseUrl.getPort(), messageHeaders, messageParameters, request);
@@ -700,10 +719,6 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 			new ScheduledExecutorServiceAdapter(retryExecutorService));
 	}
 
-	private static Predicate<Throwable> isConnectionProblemOrServiceUnavailable() {
-		return isConnectionProblemException().or(isServiceUnavailable());
-	}
-
 	private static Predicate<Throwable> isConnectionProblemException() {
 		return (throwable) ->
 			ExceptionUtils.findThrowable(throwable, java.net.ConnectException.class).isPresent() ||
@@ -712,17 +727,13 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 				ExceptionUtils.findThrowable(throwable, IOException.class).isPresent();
 	}
 
-	private static Predicate<Throwable> isServiceUnavailable() {
-		return httpExceptionCodePredicate(code -> code == HttpResponseStatus.SERVICE_UNAVAILABLE.code());
-	}
-
-	private static Predicate<Throwable> httpExceptionCodePredicate(Predicate<Integer> statusCodePredicate) {
+	private static Predicate<Throwable> isHttpStatusUnsuccessfulException() {
 		return (throwable) -> ExceptionUtils.findThrowable(throwable, RestClientException.class)
-			.map(restClientException -> {
-				final int code = restClientException.getHttpResponseStatus().code();
-				return statusCodePredicate.test(code);
-			})
-			.orElse(false);
+				.map(restClientException -> {
+					final int code = restClientException.getHttpResponseStatus().code();
+					return code < 200 || code > 299;
+				})
+				.orElse(false);
 	}
 
 	@VisibleForTesting

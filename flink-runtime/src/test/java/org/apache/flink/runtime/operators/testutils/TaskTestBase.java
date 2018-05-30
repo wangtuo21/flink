@@ -54,12 +54,8 @@ public abstract class TaskTestBase extends TestLogger {
 	public void initEnvironment(long memorySize, int bufferSize) {
 		this.memorySize = memorySize;
 		this.inputSplitProvider = new MockInputSplitProvider();
-		this.mockEnv = new MockEnvironmentBuilder()
-			.setTaskName("mock task")
-			.setMemorySize(this.memorySize)
-			.setInputSplitProvider(this.inputSplitProvider)
-			.setBufferSize(bufferSize)
-			.build();
+		TestTaskStateManager taskStateManager = new TestTaskStateManager();
+		this.mockEnv = new MockEnvironment("mock task", this.memorySize, this.inputSplitProvider, bufferSize, taskStateManager);
 	}
 
 	public IteratorWrappingTestSingleInputGate<Record> addInput(MutableObjectIterator<Record> input, int groupId) {

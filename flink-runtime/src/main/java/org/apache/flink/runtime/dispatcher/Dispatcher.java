@@ -563,12 +563,6 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 					} catch (Exception e) {
 						log.warn("Could not properly remove job {} from submitted job graph store.", jobId);
 					}
-
-					try {
-						runningJobsRegistry.clearJob(jobId);
-					} catch (IOException e) {
-						log.warn("Could not properly remove job {} from the running jobs registry.", jobId);
-					}
 				}
 			},
 			getRpcService().getExecutor());

@@ -35,7 +35,6 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.operators.testutils.MockEnvironment;
-import org.apache.flink.runtime.operators.testutils.MockEnvironmentBuilder;
 import org.apache.flink.runtime.operators.testutils.MockInputSplitProvider;
 import org.apache.flink.runtime.state.TestTaskStateManager;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
@@ -58,7 +57,6 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.StreamTask;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
-import org.apache.flink.streaming.util.MockStreamConfig;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.TestHarnessUtil;
 import org.apache.flink.util.ExceptionUtils;
@@ -652,12 +650,12 @@ public class AsyncWaitOperatorTest extends TestLogger {
 
 	@Nonnull
 	private MockEnvironment createMockEnvironment() {
-		return new MockEnvironmentBuilder()
-			.setTaskName("foobarTask")
-			.setMemorySize(1024 * 1024L)
-			.setInputSplitProvider(new MockInputSplitProvider())
-			.setBufferSize(4 * 1024)
-			.build();
+		return new MockEnvironment(
+			"foobarTask",
+			1024 * 1024L,
+			new MockInputSplitProvider(),
+			4 * 1024,
+			new TestTaskStateManager());
 	}
 
 	/**
@@ -681,8 +679,8 @@ public class AsyncWaitOperatorTest extends TestLogger {
 		when(containingTask.getCheckpointLock()).thenReturn(lock);
 		when(containingTask.getProcessingTimeService()).thenReturn(new TestProcessingTimeService());
 
-		StreamConfig streamConfig = new MockStreamConfig();
-		streamConfig.setTypeSerializerIn1(IntSerializer.INSTANCE);
+		StreamConfig streamConfig = mock(StreamConfig.class);
+		doReturn(IntSerializer.INSTANCE).when(streamConfig).getTypeSerializerIn1(any(ClassLoader.class));
 
 		final OneShotLatch closingLatch = new OneShotLatch();
 		final OneShotLatch outputLatch = new OneShotLatch();
@@ -784,8 +782,8 @@ public class AsyncWaitOperatorTest extends TestLogger {
 		when(containingTask.getCheckpointLock()).thenReturn(lock);
 		when(containingTask.getProcessingTimeService()).thenReturn(processingTimeService);
 
-		StreamConfig streamConfig = new MockStreamConfig();
-		streamConfig.setTypeSerializerIn1(IntSerializer.INSTANCE);
+		StreamConfig streamConfig = mock(StreamConfig.class);
+		doReturn(IntSerializer.INSTANCE).when(streamConfig).getTypeSerializerIn1(any(ClassLoader.class));
 
 		Output<StreamRecord<Integer>> output = mock(Output.class);
 

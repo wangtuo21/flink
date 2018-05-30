@@ -286,8 +286,6 @@ producerConfig.put("RecordTtl", "30000");
 producerConfig.put("RequestTimeout", "6000");
 producerConfig.put("ThreadPoolSize", "15");
 
-// Disable Aggregation if it's not supported by a consumer
-// producerConfig.put("AggregationEnabled", "false");
 // Switch KinesisProducer's threading model
 // producerConfig.put("ThreadingModel", "PER_REQUEST");
 
@@ -314,8 +312,6 @@ producerConfig.put("RecordTtl", "30000")
 producerConfig.put("RequestTimeout", "6000")
 producerConfig.put("ThreadPoolSize", "15")
 
-// Disable Aggregation if it's not supported by a consumer
-// producerConfig.put("AggregationEnabled", "false")
 // Switch KinesisProducer's threading model
 // producerConfig.put("ThreadingModel", "PER_REQUEST")
 

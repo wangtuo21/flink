@@ -22,15 +22,14 @@ package org.apache.flink.runtime.registration;
  * Classes which want to be notified about the registration result by the {@link RegisteredRpcConnection}
  * have to implement this interface.
  */
-public interface RegistrationConnectionListener<T extends RegisteredRpcConnection<?, ?, S>, S extends RegistrationResponse.Success> {
+public interface RegistrationConnectionListener<Success extends RegistrationResponse.Success> {
 
 	/**
 	 * This method is called by the {@link RegisteredRpcConnection} when the registration is success.
 	 *
 	 * @param success The concrete response information for successful registration.
-	 * @param connection The instance which established the connection
 	 */
-	void onRegistrationSuccess(T connection, S success);
+	void onRegistrationSuccess(Success success);
 
 	/**
 	 * This method is called by the {@link RegisteredRpcConnection} when the registration fails.

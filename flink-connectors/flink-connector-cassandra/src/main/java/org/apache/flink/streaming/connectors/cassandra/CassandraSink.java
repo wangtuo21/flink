@@ -236,7 +236,6 @@ public class CassandraSink<IN> {
 		protected final TypeSerializer<IN> serializer;
 		protected final TypeInformation<IN> typeInfo;
 		protected ClusterBuilder builder;
-		protected String keyspace;
 		protected MapperOptions mapperOptions;
 		protected String query;
 		protected CheckpointCommitter committer;
@@ -256,17 +255,6 @@ public class CassandraSink<IN> {
 		 */
 		public CassandraSinkBuilder<IN> setQuery(String query) {
 			this.query = query;
-			return this;
-		}
-
-		/**
-		 * Sets the keyspace to be used.
-		 *
-		 * @param keyspace keyspace to use
-		 * @return this builder
-		 */
-		public CassandraSinkBuilder<IN> setDefaultKeyspace(String keyspace) {
-			this.keyspace = keyspace;
 			return this;
 		}
 
@@ -393,9 +381,6 @@ public class CassandraSink<IN> {
 			if (query == null || query.length() == 0) {
 				throw new IllegalArgumentException("Query must not be null or empty.");
 			}
-			if (keyspace != null) {
-				throw new IllegalArgumentException("Specifying a default keyspace is only allowed when using a Pojo-Stream as input.");
-			}
 		}
 
 		@Override
@@ -424,9 +409,6 @@ public class CassandraSink<IN> {
 			super.sanityCheck();
 			if (query == null || query.length() == 0) {
 				throw new IllegalArgumentException("Query must not be null or empty.");
-			}
-			if (keyspace != null) {
-				throw new IllegalArgumentException("Specifying a default keyspace is only allowed when using a Pojo-Stream as input.");
 			}
 		}
 
@@ -463,7 +445,7 @@ public class CassandraSink<IN> {
 
 		@Override
 		public CassandraSink<IN> createSink() throws Exception {
-			return new CassandraSink<>(input.addSink(new CassandraPojoSink<>(typeInfo.getTypeClass(), builder, mapperOptions, keyspace)).name("Cassandra Sink"));
+			return new CassandraSink<>(input.addSink(new CassandraPojoSink<>(typeInfo.getTypeClass(), builder, mapperOptions)).name("Cassandra Sink"));
 		}
 
 		@Override
@@ -487,9 +469,6 @@ public class CassandraSink<IN> {
 			super.sanityCheck();
 			if (query == null || query.length() == 0) {
 				throw new IllegalArgumentException("Query must not be null or empty.");
-			}
-			if (keyspace != null) {
-				throw new IllegalArgumentException("Specifying a default keyspace is only allowed when using a Pojo-Stream as input.");
 			}
 		}
 

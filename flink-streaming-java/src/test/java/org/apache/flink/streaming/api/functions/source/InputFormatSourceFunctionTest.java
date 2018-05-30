@@ -29,11 +29,10 @@ import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.execution.Environment;
-import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
 import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.operators.testutils.MockEnvironment;
-import org.apache.flink.runtime.operators.testutils.MockEnvironmentBuilder;
+import org.apache.flink.runtime.state.TestTaskStateManager;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.api.watermark.Watermark;
@@ -67,11 +66,12 @@ public class InputFormatSourceFunctionTest {
 		final LifeCycleTestInputFormat format = new LifeCycleTestInputFormat();
 		final InputFormatSourceFunction<Integer> reader = new InputFormatSourceFunction<>(format, TypeInformation.of(Integer.class));
 
-		try (MockEnvironment environment =
-				new MockEnvironmentBuilder()
-					.setTaskName("no")
-					.setMemorySize(4 * MemoryManager.DEFAULT_PAGE_SIZE)
-					.build()) {
+		try (MockEnvironment environment = new MockEnvironment(
+			"no",
+			4 * MemoryManager.DEFAULT_PAGE_SIZE,
+			null,
+			16,
+			new TestTaskStateManager())) {
 
 			reader.setRuntimeContext(new MockRuntimeContext(format, noOfSplits, environment));
 
@@ -308,11 +308,6 @@ public class InputFormatSourceFunctionTest {
 			@Override
 			public ExecutionConfig getExecutionConfig() {
 				return new ExecutionConfig();
-			}
-
-			@Override
-			public OperatorID getOperatorID() {
-				return new OperatorID();
 			}
 		}
 	}

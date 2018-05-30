@@ -19,8 +19,9 @@
 package org.apache.flink.runtime.webmonitor.history;
 
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.runtime.rest.handler.router.Router;
 import org.apache.flink.runtime.webmonitor.utils.WebFrontendBootstrap;
+
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.router.Router;
 
 import org.junit.Assert;
 import org.junit.Rule;
@@ -42,7 +43,7 @@ public class HistoryServerStaticFileServerHandlerTest {
 	public void testRespondWithFile() throws Exception {
 		File webDir = tmp.newFolder("webDir");
 		Router router = new Router()
-			.addGet("/:*", new HistoryServerStaticFileServerHandler(webDir));
+			.GET("/:*", new HistoryServerStaticFileServerHandler(webDir));
 		WebFrontendBootstrap webUI = new WebFrontendBootstrap(
 			router,
 			LoggerFactory.getLogger(HistoryServerStaticFileServerHandlerTest.class),

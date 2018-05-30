@@ -23,7 +23,6 @@ import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.HandlerRequestException;
 import org.apache.flink.runtime.rest.handler.RedirectHandler;
 import org.apache.flink.runtime.rest.handler.RestHandlerException;
-import org.apache.flink.runtime.rest.handler.router.RoutedRequest;
 import org.apache.flink.runtime.rest.handler.util.HandlerUtils;
 import org.apache.flink.runtime.rest.messages.ErrorResponseBody;
 import org.apache.flink.runtime.rest.messages.FileUpload;
@@ -44,6 +43,7 @@ import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.FullHttpRequest;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpRequest;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.router.Routed;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,11 +83,12 @@ public abstract class AbstractHandler<T extends RestfulGateway, R extends Reques
 	}
 
 	@Override
-	protected void respondAsLeader(ChannelHandlerContext ctx, RoutedRequest routedRequest, T gateway) throws Exception {
-		HttpRequest httpRequest = routedRequest.getRequest();
+	protected void respondAsLeader(ChannelHandlerContext ctx, Routed routed, T gateway) throws Exception {
 		if (log.isTraceEnabled()) {
-			log.trace("Received request " + httpRequest.getUri() + '.');
+			log.trace("Received request " + routed.request().getUri() + '.');
 		}
+
+		final HttpRequest httpRequest = routed.request();
 
 		try {
 			if (!(httpRequest instanceof FullHttpRequest)) {
@@ -151,11 +152,7 @@ public abstract class AbstractHandler<T extends RestfulGateway, R extends Reques
 			final HandlerRequest<R, M> handlerRequest;
 
 			try {
-				handlerRequest = new HandlerRequest<>(
-					request,
-					untypedResponseMessageHeaders.getUnresolvedMessageParameters(),
-					routedRequest.getRouteResult().pathParams(),
-					routedRequest.getRouteResult().queryParams());
+				handlerRequest = new HandlerRequest<>(request, untypedResponseMessageHeaders.getUnresolvedMessageParameters(), routed.pathParams(), routed.queryParams());
 			} catch (HandlerRequestException hre) {
 				log.error("Could not create the handler request.", hre);
 

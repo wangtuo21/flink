@@ -37,8 +37,10 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then
     SHASUM="shasum -a 512"
+    MD5SUM="md5 -r"
 else
     SHASUM="sha512sum"
+    MD5SUM="md5sum"
 fi
 
 ###########################
@@ -60,7 +62,8 @@ rsync -a \
 
 tar czf flink-${RELEASE_VERSION}-src.tgz flink-$RELEASE_VERSION
 gpg --armor --detach-sig flink-$RELEASE_VERSION-src.tgz
-$SHASUM flink-$RELEASE_VERSION-src.tgz > flink-$RELEASE_VERSION-src.tgz.sha512
+$MD5SUM flink-$RELEASE_VERSION-src.tgz > flink-$RELEASE_VERSION-src.tgz.md5
+$SHASUM flink-$RELEASE_VERSION-src.tgz > flink-$RELEASE_VERSION-src.tgz.sha
 
 mv flink-$RELEASE_VERSION-src.* ../
 cd ..
